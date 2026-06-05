@@ -343,6 +343,56 @@ def menu_tentang():
     print(f"  {RED}  [X]  DOWN          {R}-- Website mati / tidak bisa diakses\n")
     input(f"  {GRY}Tekan ENTER untuk kembali ke menu...{R}")
 
+# ─── IP TRACKER ───────────────────────────────────────────────────────────────
+
+def menu_ip_tracker():
+    banner()
+    print(f"  {CYN}{BLD}[ IP TRACKER ]{R}\n")
+    print(f"  {GRY}Catatan: Lokasi dari IP hanya akurat sampai level")
+    print(f"  kota/ISP, bukan alamat persis.{R}\n")
+    ip = input(f"  {WHT}Masukkan IP address{R} {GRY}(contoh: 8.8.8.8){R}\n  > ").strip()
+    if not ip:
+        print(f"\n  {RED}IP tidak boleh kosong!{R}")
+        input(f"\n  {GRY}Tekan ENTER untuk kembali...{R}")
+        return
+
+    print(f"\n  {GRY}Sedang melacak, tunggu sebentar...{R}\n")
+
+    try:
+        url = f"http://ip-api.com/json/{ip}?fields=status,message,country,regionName,city,isp,org,lat,lon,query"
+        req = urllib.request.Request(url, headers={"User-Agent": "Halim-Soc IPTracker/1.0"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode())
+
+        if data.get("status") == "fail":
+            print(f"  {RED}Gagal: {data.get('message', 'IP tidak valid')}{R}")
+            input(f"\n  {GRY}Tekan ENTER untuk kembali...{R}")
+            return
+
+        lat  = data.get("lat", 0)
+        lon  = data.get("lon", 0)
+        maps = f"https://maps.google.com/?q={lat},{lon}"
+
+        print(f"  {BLD}{WHT}{'─'*50}{R}")
+        print(f"  {CYN}{BLD}  HASIL LACAK IP{R}")
+        print(f"  {BLD}{WHT}{'─'*50}{R}\n")
+        print(f"  {GRY}IP Address  :{R} {WHT}{data.get('query', ip)}{R}")
+        print(f"  {GRY}Negara      :{R} {WHT}{data.get('country', 'N/A')}{R}")
+        print(f"  {GRY}Provinsi    :{R} {WHT}{data.get('regionName', 'N/A')}{R}")
+        print(f"  {GRY}Kota        :{R} {WHT}{data.get('city', 'N/A')}{R}")
+        print(f"  {GRY}ISP         :{R} {WHT}{data.get('isp', 'N/A')}{R}")
+        print(f"  {GRY}Organisasi  :{R} {WHT}{data.get('org', 'N/A')}{R}")
+        print(f"  {GRY}Koordinat   :{R} {WHT}{lat}, {lon}{R}")
+        print(f"\n  {BLD}{GRN}[ LINK GOOGLE MAPS ]{R}")
+        print(f"  {YLW}{maps}{R}")
+        print(f"\n  {GRY}Copy link di atas, paste di Chrome untuk lihat lokasinya!{R}")
+        print(f"\n  {BLD}{WHT}{'─'*50}{R}\n")
+
+    except Exception as e:
+        print(f"  {RED}Error: {e}{R}\n")
+
+    input(f"  {GRY}Tekan ENTER untuk kembali ke menu...{R}")
+
 # ─── MAIN MENU ─────────────────────────────────────────────────────────────────
 
 def main():
@@ -352,9 +402,10 @@ def main():
         print(f"  {CYN}1.{R}  Cek 1 website")
         print(f"  {CYN}2.{R}  Cek banyak website sekaligus")
         print(f"  {CYN}3.{R}  Cek dari file .txt")
-        print(f"  {CYN}4.{R}  Tentang tools ini")
+        print(f"  {CYN}4.{R}  IP Tracker + Google Maps")
+        print(f"  {CYN}5.{R}  Tentang tools ini")
         print(f"  {CYN}0.{R}  Keluar\n")
-        pilihan = input(f"  {WHT}Pilih menu{R} {GRY}[0-4]{R}: ").strip()
+        pilihan = input(f"  {WHT}Pilih menu{R} {GRY}[0-5]{R}: ").strip()
 
         if pilihan == "1":
             menu_cek_satu()
@@ -363,14 +414,17 @@ def main():
         elif pilihan == "3":
             menu_dari_file()
         elif pilihan == "4":
+            menu_ip_tracker()
+        elif pilihan == "5":
             menu_tentang()
         elif pilihan == "0":
             banner()
             print(f"  {CYN}Sampai jumpa, Halim-Soc!{R}\n")
             sys.exit(0)
         else:
-            print(f"\n  {RED}Pilihan tidak valid! Masukkan angka 0-4.{R}")
+            print(f"\n  {RED}Pilihan tidak valid! Masukkan angka 0-5.{R}")
             time.sleep(1)
 
 if __name__ == "__main__":
     main()
+    

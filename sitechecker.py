@@ -55,16 +55,17 @@ def clear():
 def banner():
     clear()
     print(f"""
-{CYN}{BLD}╔══════════════════════════════════════════════════╗
-║   _   _    _    _     ___ __  __      ____  ___  ║
-║  | | | |  / \\  | |   |_ _|  \\/  |    / ___|/ _ \\ ║
-║  | |_| | / _ \\ | |    | || |\\/| |____\\___ | | | |║
-║  |  _  |/ ___ \\| |___ | || |  | |_____|__) | |_| |║
-║  |_| |_/_/   \\_|_____|___|_|  |_|    |____/ \\___/ ║
-║                                                    ║
-║          --  S O C  S I T E  C H E C K E R  --    ║
-║                    by  Halim-Soc                   ║
-╚══════════════════════════════════════════════════╝{R}
+{CYN}{BLD}╔═══════════════════════════════════════════════════════╗
+║  ██╗  ██╗ █████╗ ██╗     ██╗███╗   ███╗             ║
+║  ██║  ██║██╔══██╗██║     ██║████╗ ████║             ║
+║  ███████║███████║██║     ██║██╔████╔██║             ║
+║  ██╔══██║██╔══██║██║     ██║██║╚██╔╝██║             ║
+║  ██║  ██║██║  ██║███████╗██║██║ ╚═╝ ██║             ║
+║  ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚═╝╚═╝     ╚═╝             ║
+║                                                       ║
+║           --  S O C  S I T E  C H E C K E R  --      ║
+║                      by  Halim-Soc                    ║
+╚═══════════════════════════════════════════════════════╝{R}
 {GRY}  Website Health & Status Monitor
   {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{R}
 """)
@@ -393,37 +394,117 @@ def menu_ip_tracker():
 
     input(f"  {GRY}Tekan ENTER untuk kembali ke menu...{R}")
 
-# ─── MAIN MENU ─────────────────────────────────────────────────────────────────
+# ─── PORT SCANNER ─────────────────────────────────────────────────────────────
 
-def main():
-    while True:
-        banner()
-        print(f"  {BLD}{WHT}MENU UTAMA{R}\n")
-        print(f"  {CYN}1.{R}  Cek 1 website")
-        print(f"  {CYN}2.{R}  Cek banyak website sekaligus")
-        print(f"  {CYN}3.{R}  Cek dari file .txt")
-        print(f"  {CYN}4.{R}  IP Tracker + Google Maps")
-        print(f"  {CYN}5.{R}  Tentang tools ini")
-        print(f"  {CYN}0.{R}  Keluar\n")
-        pilihan = input(f"  {WHT}Pilih menu{R} {GRY}[0-5]{R}: ").strip()
+def menu_port_scanner():
+    banner()
+    print(f"  {CYN}{BLD}[ PORT SCANNER ]{R}\n")
+    print(f"  {GRY}Cek port mana aja yang terbuka di sebuah server.{R}\n")
+    target = input(f"  {WHT}Masukkan IP / domain{R} {GRY}(contoh: google.com){R}\n  > ").strip()
+    if not target:
+        print(f"\n  {RED}Target tidak boleh kosong!{R}")
+        input(f"\n  {GRY}Tekan ENTER untuk kembali...{R}")
+        return
 
-        if pilihan == "1":
-            menu_cek_satu()
-        elif pilihan == "2":
-            menu_cek_banyak()
-        elif pilihan == "3":
-            menu_dari_file()
-        elif pilihan == "4":
-            menu_ip_tracker()
-        elif pilihan == "5":
-            menu_tentang()
-        elif pilihan == "0":
-            banner()
-            print(f"  {CYN}Sampai jumpa, Halim-Soc!{R}\n")
-            sys.exit(0)
-        else:
-            print(f"\n  {RED}Pilihan tidak valid! Masukkan angka 0-5.{R}")
-            time.sleep(1)
+    mode = input(f"\n  {WHT}Mode scan:{R}\n  {CYN}1.{R} Port umum (cepat)\n  {CYN}2.{R} Port 1-1024 (lengkap)\n  > ").strip()
 
-if __name__ == "__main__":
-    main()
+    if mode == "1":
+        ports = [21,22,23,25,53,80,110,143,443,445,3306,3389,5432,6379,8080,8443,8888,27017]
+        label = "Port Umum"
+    else:
+        ports = list(range(1, 1025))
+        label = "Port 1-1024"
+
+    print(f"\n  {GRY}Scanning {label} pada {target}...{R}\n")
+
+    # resolve hostname
+    try:
+        ip = socket.gethostbyname(target)
+        print(f"  {GRY}IP: {WHT}{ip}{R}\n")
+    except:
+        print(f"  {RED}Gagal resolve hostname!{R}")
+        input(f"\n  {GRY}Tekan ENTER untuk kembali...{R}")
+        return
+
+    open_ports = []
+
+    def scan_port(port):
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(0.5)
+            result = s.connect_ex((ip, port))
+            s.close()
+            return port if result == 0 else None
+        except:
+            return None
+
+    PORT_NAMES = {
+        21:"FTP", 22:"SSH", 23:"Telnet", 25:"SMTP", 53:"DNS",
+        80:"HTTP", 110:"POP3", 143:"IMAP", 443:"HTTPS", 445:"SMB",
+        3306:"MySQL", 3389:"RDP", 5432:"PostgreSQL", 6379:"Redis",
+        8080:"HTTP-Alt", 8443:"HTTPS-Alt", 8888:"HTTP-Alt", 27017:"MongoDB"
+    }
+
+    with ThreadPoolExecutor(max_workers=50) as ex:
+        futures = {ex.submit(scan_port, p): p for p in ports}
+        done = 0
+        for future in as_completed(futures):
+            done += 1
+            result = future.result()
+            if result:
+                open_ports.append(result)
+            if mode == "1":
+                print(f"  {GRY}Scanning... {done}/{len(ports)}{R}", end="\r")
+
+    open_ports.sort()
+    print(f"\n\n  {BLD}{WHT}{'─'*50}{R}")
+    if open_ports:
+        print(f"  {GRN}{BLD}Port terbuka ditemukan: {len(open_ports)}{R}\n")
+        for p in open_ports:
+            nama = PORT_NAMES.get(p, "Unknown")
+            print(f"    {GRN}[OPEN]{R}  {WHT}{p:<6}{R}  {CYN}{nama}{R}")
+    else:
+        print(f"  {YLW}Tidak ada port terbuka yang ditemukan.{R}")
+    print(f"  {BLD}{WHT}{'─'*50}{R}\n")
+    input(f"  {GRY}Tekan ENTER untuk kembali ke menu...{R}")
+
+# ─── DNS LOOKUP ───────────────────────────────────────────────────────────────
+
+def menu_dns_lookup():
+    banner()
+    print(f"  {CYN}{BLD}[ DNS LOOKUP ]{R}\n")
+    print(f"  {GRY}Cek semua record DNS dari sebuah domain.{R}\n")
+    domain = input(f"  {WHT}Masukkan domain{R} {GRY}(contoh: google.com){R}\n  > ").strip()
+    if not domain:
+        print(f"\n  {RED}Domain tidak boleh kosong!{R}")
+        input(f"\n  {GRY}Tekan ENTER untuk kembali...{R}")
+        return
+
+    domain = domain.replace("https://","").replace("http://","").strip("/")
+    print(f"\n  {GRY}Mengambil info DNS untuk {domain}...{R}\n")
+
+    print(f"  {BLD}{WHT}{'─'*50}{R}")
+    print(f"  {CYN}{BLD}  HASIL DNS LOOKUP: {domain}{R}")
+    print(f"  {BLD}{WHT}{'─'*50}{R}\n")
+
+    # A record (IPv4)
+    try:
+        results = socket.getaddrinfo(domain, None, socket.AF_INET)
+        ips = list(set([r[4][0] for r in results]))
+        for ip in ips:
+            print(f"  {GRY}A (IPv4)    :{R} {WHT}{ip}{R}")
+    except:
+        print(f"  {GRY}A (IPv4)    :{R} {RED}Tidak ditemukan{R}")
+
+    # AAAA record (IPv6)
+    try:
+        results = socket.getaddrinfo(domain, None, socket.AF_INET6)
+        ips = list(set([r[4][0] for r in results]))
+        for ip in ips:
+            print(f"  {GRY}AAAA (IPv6) :{R} {WHT}{ip}{R}")
+    except:
+        print(f"  {GRY}AAAA (IPv6) :{R} {RED}Tidak ditemukan{R}")
+
+    # Reverse DNS
+    try:
+       
